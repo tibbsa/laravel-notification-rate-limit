@@ -514,4 +514,13 @@ class RateLimitTest extends TestCase
         // The property is true on this notification, overriding the false config.
         $this->assertTrue((new TestPerChannelPropertyNotification())->rateLimitPerChannel());
     }
+
+    #[Test]
+    public function per_channel_property_false_overrides_config_true()
+    {
+        Config::set('laravel-notification-rate-limit.rate_limit_per_channel', true);
+
+        // An explicit false on the notification beats config=true.
+        $this->assertFalse((new TestPerChannelDisabledNotification())->rateLimitPerChannel());
+    }
 }
