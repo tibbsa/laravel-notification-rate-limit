@@ -20,6 +20,9 @@ Rate Limiting Notifications in Laravel using Laravel's native rate limiter to av
 | 9.x       | 8.0     | 2.1.0                           | 2023-08-26 |
 | 10.x      | 8.0/8.1 | 2.1.0                           | 2023-08-26 |
 | 10.x-13.x | 8.2-8.4 | 3.3.0                           | 2026-03-22 |
+| 11.x-13.x | 8.2-8.4 | 4.0.0                           | 2026-06-13 |
+
+> **Laravel 10 users:** Laravel 10 reached end of security support in February 2025 and is no longer covered by this package as of `4.0.0`. If you still need Laravel 10 support, pin to `3.3.0` (`composer require jamesmills/laravel-notification-rate-limit:^3.3`), which is the last release to support it.
 
 ## Installation
 
