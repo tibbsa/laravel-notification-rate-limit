@@ -495,4 +495,23 @@ class RateLimitTest extends TestCase
             $notification->rateLimitKey($notification, $this->user, 'broadcast')
         );
     }
+
+    #[Test]
+    public function per_channel_defaults_to_config_value()
+    {
+        Config::set('laravel-notification-rate-limit.rate_limit_per_channel', false);
+        $this->assertFalse((new TestNotification())->rateLimitPerChannel());
+
+        Config::set('laravel-notification-rate-limit.rate_limit_per_channel', true);
+        $this->assertTrue((new TestNotification())->rateLimitPerChannel());
+    }
+
+    #[Test]
+    public function per_channel_property_overrides_config()
+    {
+        Config::set('laravel-notification-rate-limit.rate_limit_per_channel', false);
+
+        // The property is true on this notification, overriding the false config.
+        $this->assertTrue((new TestPerChannelPropertyNotification())->rateLimitPerChannel());
+    }
 }

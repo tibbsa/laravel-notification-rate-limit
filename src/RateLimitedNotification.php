@@ -94,6 +94,17 @@ trait RateLimitedNotification
         return $this->logSkippedNotifications ?? config('laravel-notification-rate-limit.log_skipped_notifications');
     }
 
+    /**
+     * Whether rate limiting is evaluated independently per notification
+     * channel rather than once for the whole notification.
+     *
+     * @return \Illuminate\Config\Repository|mixed
+     */
+    public function rateLimitPerChannel()
+    {
+        return $this->rateLimitPerChannel ?? config('laravel-notification-rate-limit.rate_limit_per_channel');
+    }
+
     public function shouldRateLimitUniqueNotifications()
     {
         return $this->shouldRateLimitUniqueNotifications ?? config('laravel-notification-rate-limit.should_rate_limit_unique_notifications');

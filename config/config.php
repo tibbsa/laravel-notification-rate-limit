@@ -99,4 +99,23 @@ return [
     */
 
     'event' => \Jamesmills\LaravelNotificationRateLimit\Events\NotificationRateLimitReached::class,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Rate Limit Per Channel
+    |--------------------------------------------------------------------------
+    |
+    | By default a notification is rate limited as a whole: a single counter
+    | covers every channel the notification is delivered on. Enable this to
+    | track each channel independently, so that (for example) a notification
+    | delivered over both `mail` and `broadcast` keeps a separate rate limit
+    | for each channel. Turning this on also makes the channel available to
+    | `rateLimitKey()` so you can build channel-aware cache keys.
+    |
+    | This can be overridden per-notification with a `$rateLimitPerChannel`
+    | property.
+    |
+    */
+
+    'rate_limit_per_channel' => false,
 ];
