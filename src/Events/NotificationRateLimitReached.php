@@ -19,6 +19,7 @@ class NotificationRateLimitReached
         public string $key,
         public int $availableIn,
         public string $reason,
+        public ?string $channel = null,
     ) {
     }
 }

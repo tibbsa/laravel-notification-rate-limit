@@ -523,4 +523,33 @@ class RateLimitTest extends TestCase
         // An explicit false on the notification beats config=true.
         $this->assertFalse((new TestPerChannelDisabledNotification())->rateLimitPerChannel());
     }
+
+    #[Test]
+    public function rate_limit_reached_event_defaults_channel_to_null()
+    {
+        $event = new NotificationRateLimitReached(
+            new TestNotification(),
+            $this->user,
+            'some-key',
+            10,
+            NotificationRateLimitReached::REASON_LIMITER
+        );
+
+        $this->assertNull($event->channel);
+    }
+
+    #[Test]
+    public function rate_limit_reached_event_exposes_channel()
+    {
+        $event = new NotificationRateLimitReached(
+            new TestNotification(),
+            $this->user,
+            'some-key',
+            10,
+            NotificationRateLimitReached::REASON_LIMITER,
+            'mail'
+        );
+
+        $this->assertSame('mail', $event->channel);
+    }
 }
