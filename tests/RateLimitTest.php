@@ -51,10 +51,11 @@ class RateLimitTest extends TestCase
         Event::fake();
         Log::swap(new LogFake);
 
-        // When Notification is faked, Notification::send() and Notification::route
-        // do not call our channel manager, so we cannot use the Notification tests to
-        // verify that m
-        // that works, Notification::send()/route() will work in a live application.
+        // Notification::fake() swaps the channel manager binding, so Notification::send()
+        // and Notification::route() would otherwise bypass our RateLimitChannelManager.
+        // Rebinding the real RateLimitChannelManager below ensures $user->notify(),
+        // notifyNow(), and direct $this->rateLimitChannelManager calls exercise the
+        // actual rate-limiting code path.
         $this->app->singleton(ChannelManager::class, function ($app) {
             return new RateLimitChannelManager($app);
         });
@@ -686,5 +687,22 @@ class RateLimitTest extends TestCase
             NotificationRateLimitReached::class,
             fn (NotificationRateLimitReached $e) => $e->key === 'legacy-key-'.$this->user->getKey()
         );
+    }
+
+    #[Test]
+    public function custom_event_class_with_legacy_constructor_still_works()
+    {
+        // A user-provided event class predating the $channel argument has only
+        // five constructor parameters. The manager always constructs the event
+        // with six positional args; PHP ignores the extra one, so old custom
+        // event classes keep working.
+        Config::set('laravel-notification-rate-limit.event', TestLegacyEventWithoutChannel::class);
+
+        // Trigger a rate limit (second send) and confirm the custom event is
+        // constructed and dispatched without error.
+        $this->user->notify(new TestNotification());
+        $this->user->notify(new TestNotification());
+
+        Event::assertDispatched(TestLegacyEventWithoutChannel::class);
     }
 }

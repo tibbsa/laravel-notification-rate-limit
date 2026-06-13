@@ -123,6 +123,8 @@ public function rateLimitKey($notification, $notifiable, ?string $channel = null
 ```
 
 The channel is also exposed on the `NotificationRateLimitReached` event (the `$channel` property) and included in the skipped-notification log context. In the default (channel-agnostic) mode, `$channel` is `null`.
+
+> **Note:** In per-channel mode each channel is delivered as its own send, so Laravel assigns a distinct notification id per channel. In the default mode, all channels of a single send share one id. This only matters if you correlate channels by notification id (for example, across `database`-channel rows).
     
 ### Logging skipped notifications
 
