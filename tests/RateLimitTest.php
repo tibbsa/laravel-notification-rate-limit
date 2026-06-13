@@ -552,4 +552,21 @@ class RateLimitTest extends TestCase
 
         $this->assertSame('mail', $event->channel);
     }
+
+    #[Test]
+    public function per_channel_mode_limits_each_channel_independently()
+    {
+        Config::set('laravel-notification-rate-limit.rate_limit_per_channel', true);
+
+        // First send: both channels deliver, no rate-limit events.
+        $this->rateLimitChannelManager->send($this->user, new TestMultiDeliverableNotification());
+        Event::assertDispatchedTimes(NotificationSent::class, 2);
+        Event::assertNotDispatched(NotificationRateLimitReached::class);
+
+        // Second identical send within the window: each channel is limited
+        // independently, so two rate-limit events and no further deliveries.
+        $this->rateLimitChannelManager->send($this->user, new TestMultiDeliverableNotification());
+        Event::assertDispatchedTimes(NotificationSent::class, 2);
+        Event::assertDispatchedTimes(NotificationRateLimitReached::class, 2);
+    }
 }
