@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
  */
 trait RateLimitedNotification
 {
-    public function rateLimitKey($notification, $notifiable): string
+    public function rateLimitKey($notification, $notifiable, ?string $channel = null): string
     {
         $parts = array_merge(
             [
@@ -18,6 +18,7 @@ trait RateLimitedNotification
                 class_basename($notification),
                 $this->determineNotifiableIdentifier($notifiable),
             ],
+            $channel !== null ? [$channel] : [],
             $this->rateLimitCustomCacheKeyParts(),
             $this->rateLimitUniqueueNotifications($notification)
         );

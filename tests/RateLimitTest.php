@@ -454,4 +454,45 @@ class RateLimitTest extends TestCase
             return $evt->notifiable->is($this->user) && $evt->channel == 'mail';
         });
     }
+
+    #[Test]
+    public function rate_limit_key_without_channel_matches_legacy_format()
+    {
+        $notification = new TestNotification();
+
+        $key = $notification->rateLimitKey($notification, $this->user);
+
+        $expected = Str::lower(
+            config('laravel-notification-rate-limit.key_prefix')
+            .'.TestNotification.'.$this->user->getKey()
+        );
+
+        $this->assertSame($expected, $key);
+    }
+
+    #[Test]
+    public function rate_limit_key_includes_channel_when_provided()
+    {
+        $notification = new TestNotification();
+
+        $key = $notification->rateLimitKey($notification, $this->user, 'mail');
+
+        $expected = Str::lower(
+            config('laravel-notification-rate-limit.key_prefix')
+            .'.TestNotification.'.$this->user->getKey().'.mail'
+        );
+
+        $this->assertSame($expected, $key);
+    }
+
+    #[Test]
+    public function rate_limit_key_differs_between_channels()
+    {
+        $notification = new TestNotification();
+
+        $this->assertNotSame(
+            $notification->rateLimitKey($notification, $this->user, 'mail'),
+            $notification->rateLimitKey($notification, $this->user, 'broadcast')
+        );
+    }
 }
