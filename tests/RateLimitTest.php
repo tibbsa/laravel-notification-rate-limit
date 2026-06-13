@@ -569,4 +569,122 @@ class RateLimitTest extends TestCase
         Event::assertDispatchedTimes(NotificationSent::class, 2);
         Event::assertDispatchedTimes(NotificationRateLimitReached::class, 2);
     }
+
+    #[Test]
+    public function default_mode_rate_limits_notification_as_a_whole()
+    {
+        // rate_limit_per_channel defaults to false.
+        $this->rateLimitChannelManager->send($this->user, new TestMultiDeliverableNotification());
+        Event::assertDispatchedTimes(NotificationSent::class, 2);
+        Event::assertNotDispatched(NotificationRateLimitReached::class);
+
+        // Second send: the whole notification is limited (one event), nothing delivered.
+        $this->rateLimitChannelManager->send($this->user, new TestMultiDeliverableNotification());
+        Event::assertDispatchedTimes(NotificationSent::class, 2);
+        Event::assertDispatchedTimes(NotificationRateLimitReached::class, 1);
+    }
+
+    #[Test]
+    public function per_channel_mode_allows_each_channel_when_sent_separately()
+    {
+        // Simulates Laravel's queued delivery, which splits a multichannel
+        // notification into one sendNow() call per channel.
+        Config::set('laravel-notification-rate-limit.rate_limit_per_channel', true);
+
+        $this->rateLimitChannelManager->sendNow($this->user, new TestMultiDeliverableNotification(), ['mail']);
+        $this->rateLimitChannelManager->sendNow($this->user, new TestMultiDeliverableNotification(), [TestSecondChannel::class]);
+
+        Event::assertDispatchedTimes(NotificationSent::class, 2);
+        Event::assertNotDispatched(NotificationRateLimitReached::class);
+    }
+
+    #[Test]
+    public function default_mode_suppresses_second_channel_when_sent_separately()
+    {
+        // Documents the legacy behavior that per-channel mode fixes: with a
+        // single channel-agnostic counter, splitting the send (as the queue
+        // does) suppresses every channel after the first.
+        // rate_limit_per_channel defaults to false.
+        $this->rateLimitChannelManager->sendNow($this->user, new TestMultiDeliverableNotification(), ['mail']);
+        $this->rateLimitChannelManager->sendNow($this->user, new TestMultiDeliverableNotification(), [TestSecondChannel::class]);
+
+        Event::assertDispatchedTimes(NotificationSent::class, 1);
+        Event::assertDispatchedTimes(NotificationRateLimitReached::class, 1);
+    }
+
+    #[Test]
+    public function per_channel_mode_includes_channel_in_event_and_log()
+    {
+        Config::set('laravel-notification-rate-limit.rate_limit_per_channel', true);
+
+        // Prime the 'mail' channel limiter.
+        $this->rateLimitChannelManager->sendNow($this->user, new TestMultiDeliverableNotification(), ['mail']);
+
+        // Second send on 'mail' is limited; event + log should name the channel.
+        $this->rateLimitChannelManager->sendNow($this->user, new TestMultiDeliverableNotification(), ['mail']);
+
+        Event::assertDispatched(
+            NotificationRateLimitReached::class,
+            fn (NotificationRateLimitReached $e) => $e->channel === 'mail'
+        );
+        Log::assertLogged(
+            fn (LogEntry $log) => $log->level === 'notice'
+                && array_key_exists('channel', $log->context)
+                && $log->context['channel'] === 'mail'
+        );
+    }
+
+    #[Test]
+    public function default_mode_leaves_event_channel_null()
+    {
+        // rate_limit_per_channel defaults to false.
+        $this->user->notify(new TestNotification());
+        $this->user->notify(new TestNotification());
+
+        Event::assertDispatched(
+            NotificationRateLimitReached::class,
+            fn (NotificationRateLimitReached $e) => $e->channel === null
+        );
+        Log::assertLogged(
+            fn (LogEntry $log) => $log->level === 'notice'
+                && array_key_exists('channel', $log->context)
+                && $log->context['channel'] === null
+        );
+    }
+
+    #[Test]
+    public function per_channel_mode_respects_explicitly_requested_channels()
+    {
+        Config::set('laravel-notification-rate-limit.rate_limit_per_channel', true);
+
+        // via() would include a non-existent channel; requesting ['mail'] must win.
+        $notification = new TestMultichannelNotification(['non-existent-channel']);
+
+        $this->user->notifyNow($notification, ['mail']);
+
+        Event::assertDispatched(
+            NotificationSent::class,
+            fn (NotificationSent $evt) => $evt->notifiable->is($this->user) && $evt->channel === 'mail'
+        );
+        Event::assertNotDispatched(NotificationRateLimitReached::class);
+    }
+
+    #[Test]
+    public function legacy_two_parameter_rate_limit_key_override_still_works()
+    {
+        Config::set('laravel-notification-rate-limit.rate_limit_per_channel', true);
+
+        // First send succeeds and must not error despite the manager passing a
+        // third $channel argument to the two-parameter override.
+        $this->user->notify(new TestLegacyKeyNotification());
+        Event::assertDispatched(NotificationSent::class);
+        Event::assertNotDispatched(NotificationRateLimitReached::class);
+
+        // Second send is limited using the user's custom (channel-agnostic) key.
+        $this->user->notify(new TestLegacyKeyNotification());
+        Event::assertDispatched(
+            NotificationRateLimitReached::class,
+            fn (NotificationRateLimitReached $e) => $e->key === 'legacy-key-'.$this->user->getKey()
+        );
+    }
 }
