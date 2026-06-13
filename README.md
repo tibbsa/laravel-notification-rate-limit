@@ -99,6 +99,30 @@ Update for an individual basis by adding the below to the Notification:
 // Change rate limit to 1 hour
 protected $rateLimitForSeconds = 3600;
 ```
+
+### Rate limiting per channel
+
+By default, a notification is rate limited as a whole: a single counter covers every channel the notification is delivered on (e.g. `mail` and `broadcast` share one limit).
+
+You can instead rate limit **each channel independently**. This is useful when a notification goes out over several channels and you want each channel throttled on its own schedule. It also resolves a subtle interaction with **queued** notifications: Laravel queues one job per channel, so a queued multi-channel notification using the default (channel-agnostic) limit would deliver only its first channel and suppress the rest. Per-channel mode lets every channel through the first time and limits each one separately thereafter.
+
+Enable it globally with the `rate_limit_per_channel` config setting, or per notification:
+
+```php
+// Rate limit this notification independently for each channel
+protected $rateLimitPerChannel = true;
+```
+
+When per-channel mode is active, the channel is also passed to `rateLimitKey()` as a third argument, so you can build channel-aware cache keys:
+
+```php
+public function rateLimitKey($notification, $notifiable, ?string $channel = null): string
+{
+    // ... your custom key, optionally incorporating $channel ...
+}
+```
+
+The channel is also exposed on the `NotificationRateLimitReached` event (the `$channel` property) and included in the skipped-notification log context. In the default (channel-agnostic) mode, `$channel` is `null`.
     
 ### Logging skipped notifications
 

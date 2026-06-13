@@ -5,6 +5,7 @@ All notable changes to `laravel-notification-rate-limit` will be documented in t
 ## 4.0.0 - 2026-06-13
 
 - Removed support for Laravel 10.x and 11.x. Both have reached end of security support (Laravel 10 in February 2025, Laravel 11 in March 2026); recent framework security advisories are unpatched on those branches, so they can no longer be installed or tested here. Users who still require Laravel 10 or 11 should pin to `3.3.0`, the last release to support them.
+- New: Added opt-in per-channel rate limiting. Set `rate_limit_per_channel` (or a `$rateLimitPerChannel` property on a notification) to rate limit each delivery channel independently. The channel is passed to `rateLimitKey()` and exposed on the `NotificationRateLimitReached` event. Defaults to off, so existing behavior is unchanged. (See [issue #50](https://github.com/jamesmills/laravel-notification-rate-limit/issues/50))
 
 ## 3.3.0 - 2026-03-22
 
